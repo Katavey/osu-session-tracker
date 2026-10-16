@@ -1,0 +1,18 @@
+# Personal runtime data (any source/build layout)
+**/settings.json
+**/sessions/
+**/user-backgrounds/
+**/launcher-error.txt
+**/tracker-error.txt
+**/build-check.txt
+**/ui-check.txt
+*.log
+# Build products and release archives
+/dist/
+/work/
+*.exe
+*.zip
+*.pdb
+.vs/
+Thumbs.db
+Desktop.ini

@@ -9,6 +9,7 @@ Third-party materials retain their own licenses:
 - tosu: `third-party/tosu/LICENSE.txt` and `SOURCE.txt`.
 - osu-web mod artwork and original SVGs: `app/assets/OSU-WEB-LICENCE.txt`,
   `app/assets/ATTRIBUTION.txt` and `app/assets/mods/source-svg/`.
+- Font Awesome Free score icons: `app/assets/FONT-AWESOME-LICENSE.txt` and `app/assets/score-icons/ATTRIBUTION.txt`.
 - Synthetic voice and generated image provenance: notices in `app/assets/`.
 
 The owner can select a license for the original tracker code separately.

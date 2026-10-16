@@ -8,10 +8,13 @@ Requires Windows x64, Windows PowerShell 5.1, .NET Framework 4.x and its C# comp
 3. From the repository root run Windows PowerShell:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TosuExePath "D:\tools\tosu\tosu.exe"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Client stable -TosuExePath "D:\tools\tosu\tosu.exe"
 ```
 
-The complete application is created in `dist/osu-session-tracker-v2.0.1/`.
+Use `-Client lazer` to build the separate lazer edition with `OsuSessionTrackerLazer.exe`
+in `dist/osu-session-tracker-v2.1-lazer/`. Keep both editions in separate folders.
+
+The complete application is created in `dist/osu-session-tracker-v2.1-stable/`.
 The build copies the explicitly supplied tosu executable; it does not download,
 update or verify its origin. Use the official version linked above.
 Personal settings, sessions and imported backgrounds are never copied by the build.
@@ -19,11 +22,11 @@ Personal settings, sessions and imported backgrounds are never copied by the bui
 Optional smoke check:
 
 ```powershell
-.\dist\osu-session-tracker-v2.0.1\OsuSessionTracker.exe --self-test
+.\dist\osu-session-tracker-v2.1-stable\OsuSessionTracker.exe --self-test
 ```
 
 Check `build-check.txt` in that folder. Do not ship test markers or runtime data.
-To test source UI directly, run `app/Start.cmd` with tosu already running.
+To test source UI directly, run `app/Start.cmd` with tosu already running. `app/client.txt` selects `stable` (default) or `lazer`.
 
 Keep UTF-8 BOM on PowerShell files containing Cyrillic; Windows PowerShell 5.1
 needs it to decode those files correctly.

@@ -1,13 +1,14 @@
-﻿param([Parameter(Mandatory=$true)][string]$TosuExePath)
+﻿param([ValidateSet('stable','lazer')][string]$Client='stable',[Parameter(Mandatory=$true)][string]$TosuExePath)
 $ErrorActionPreference='Stop'
 if(!(Test-Path -LiteralPath $TosuExePath -PathType Leaf)){throw 'Supply the path to official tosu.exe'}
-$root=Join-Path $PSScriptRoot 'dist/osu-session-tracker-v2.0.1'
+$root=Join-Path $PSScriptRoot ('dist/osu-session-tracker-v2.1-'+$Client)
 [IO.Directory]::CreateDirectory($root) | Out-Null
 $app=Join-Path $root 'app'
 [IO.Directory]::CreateDirectory($app) | Out-Null
 $source=Join-Path $PSScriptRoot 'app'
 foreach($name in @('Tracker.ps1','Features.ps1','Localization.ps1','Desktop.ps1','Feed.cs','Overlay.cs','Theme.cs')){Copy-Item -LiteralPath (Join-Path $source $name) -Destination $app -Force}
 Copy-Item -LiteralPath (Join-Path $source 'assets') -Destination $app -Recurse -Force
+[IO.File]::WriteAllText((Join-Path $app 'client.txt'),$Client)
 $tosu=Join-Path $root 'tosu'
 [IO.Directory]::CreateDirectory($tosu) | Out-Null
 Add-Type -AssemblyName System.IO.Compression.FileSystem,System.Drawing
@@ -29,7 +30,8 @@ $file=[IO.File]::Create($iconPath);$icon.Save($file);$file.Dispose()
 $graphics.Dispose();$bitmap.Dispose();$brush.Dispose();$font.Dispose()
 $compiler=(Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe')
 $automation=[System.Management.Automation.PSObject].Assembly.Location
-$exe=Join-Path $root 'OsuSessionTracker.exe'
+$exeName=if($Client -eq 'lazer'){'OsuSessionTrackerLazer.exe'}else{'OsuSessionTracker.exe'}
+$exe=Join-Path $root $exeName
 & $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$exe" "/win32icon:$iconPath" /reference:System.Windows.Forms.dll "/reference:$automation" (Join-Path $PSScriptRoot 'src/Launcher.cs')
 if($LASTEXITCODE -ne 0){throw 'Compilation failed'}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'src/Launcher.cs') -Destination (Join-Path $root 'Launcher-source.cs') -Force

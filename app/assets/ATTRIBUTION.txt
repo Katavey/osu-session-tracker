@@ -1,0 +1,8 @@
+Mod icon artwork and badge shapes: ppy Pty Ltd / osu! contributors.
+Source: https://github.com/ppy/osu-web/tree/master/public/images/badges/mods
+Website component styling reference:
+https://github.com/ppy/osu-web/blob/master/resources/css/bem/mod.less
+Downloaded 2026-10-16. Distributed under GNU AGPL v3;
+see OSU-WEB-LICENCE.txt. Original SVGs included in mods/source-svg.
+Changes: coloured masks, composited badge and symbol, PNG conversion.
+Tracker source is included as Tracker.ps1 and Theme.cs.

@@ -1,0 +1,22 @@
+Built-in imagegen used. New local gallery assets:
+assets/gallery-lake.png
+assets/gallery-room.png
+
+Moonlit lake prompt:
+Use case: stylized-concept. Asset type: desktop dashboard wallpaper.
+Serene anime lake at night, indigo blue sky with a crescent moon and a few
+stars, calm reflective water, distant mountains, softly glowing lanterns
+and cherry blossoms framing the far right edge. Center and left mostly
+calm dark blue gradients for readable UI overlays. Dreamy Japanese anime
+background painting, restrained contrast, refined blue teal lilac palette,
+no people, no writing, no logos, landscape 1536x1024.
+
+Cozy room prompt:
+Use case: stylized-concept. Asset type: desktop dashboard wallpaper.
+Cozy anime bedroom study at late evening, warm peach and lavender ambient
+light, a small tidy desk with a plant and headphones at the far right,
+bookshelf and softly glowing window overlooking a rainy city. Tiny warm
+string lights near ceiling. Leave center and left quiet uncluttered softly
+shaded plum walls suitable behind UI. Polished softly painted anime
+environment illustration, gentle low contrast, muted warm pastel palette,
+no characters, no text, no logos, landscape 1536x1024.

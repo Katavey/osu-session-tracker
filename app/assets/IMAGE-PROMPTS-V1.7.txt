@@ -1,0 +1,28 @@
+Built-in imagegen used for mascot editing and background generation.
+
+Final mascot prompt:
+Edit the attached original adult anime mascot (woman age 25) into a
+full-body standing portrait for a desktop app. Preserve recognizable
+pink-lavender bob haircut, violet eyes, wink, happy smile, black-and-white
+maid outfit with frilled headband and lavender bow. Adult feminine
+proportions with fuller D-cup bust (Russian size 4), fully clothed opaque
+fitted costume, tasteful. Show complete body from top of maid headband
+to bottom of black Mary Jane shoes; black knee-high socks and knee-length
+flared maid skirt with white apron. Celebratory friendly pose, one hand
+waving and other hand making peace sign near shoulder. Natural anatomy,
+adult body proportions rather than child proportions. Polished soft-shaded
+2D anime illustration, clean cutout on genuinely transparent background.
+Leave generous transparent margin all around, no cropped feet or fingers,
+no text, no watermark. Vertical portrait framing.
+
+Menu background prompt:
+Use case: stylized-concept. Asset type: subtle wallpaper for an osu
+rhythm-game desktop tracker dashboard. A serene anime cafe room at twilight,
+soft lavender and dusty rose palette with dark plum shadows. Wide window
+on the right with distant glowing city lights, a few cherry blossom petals
+near window, delicate warm fairy lights at top, a neat desk and teacup at
+lower right. Dreamy gentle softly painted anime background with beautiful
+atmospheric lighting. Most of the center and left are calm uncluttered dark
+gradients suitable behind UI cards, restrained detail and low contrast for
+legible text, sophisticated muted colors. Wide landscape composition
+1536x1024. No characters, no writing, no logos, no watermarks.

@@ -1,0 +1,7 @@
+Japanese synthetic greeting generated with Microsoft Edge's online TTS
+through edge-tts at build time. Voice: ja-JP-NanamiNeural.
+Rate -12%, pitch +18 Hz, volume -12%; PCM copy volume multiplied by 0.65.
+Text: おかえりなさいませ、ご主人様。今日も一緒に、頑張りましょうね。
+Translation: Welcome back, master. Let's do our best together today, too.
+Playback is local, offline, using the bundled WAV file.
+TTS library reference: https://github.com/rany2/edge-tts

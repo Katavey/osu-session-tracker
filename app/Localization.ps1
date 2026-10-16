@@ -10,7 +10,7 @@ function Save-Settings {
     if([IO.File]::Exists($script:settingsPath)){try{$old=[IO.File]::ReadAllText($script:settingsPath)|ConvertFrom-Json;foreach($prop in $old.PSObject.Properties){$settings[$prop.Name]=$prop.Value}}catch{}}
     $settings.language=$script:language
     $settings.voiceEnabled=$script:voiceEnabled
-    foreach($name in @('fontName','fontChosen','theme','backgroundId','customBackgroundPath','backgroundDim','mascotEnabled','animationsEnabled','compactCards','overlayEnabled','overlayRecentEnabled','overlayRecentCount','overlayBestEnabled')){
+    foreach($name in @('fontName','fontChosen','theme','backgroundId','customBackgroundPath','backgroundDim','mascotEnabled','animationsEnabled','compactCards','overlayEnabled','overlayRecentEnabled','overlayRecentCount','overlayBestEnabled','overlayFontName','overlayAnimation','overlayCardSize','overlayWidth','overlayOpacity','overlayShowStats')){
         $value=Get-Variable -Scope Script -Name $name -ErrorAction SilentlyContinue
         if($value){$settings[$name]=$value.Value}
     }

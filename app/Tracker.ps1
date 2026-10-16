@@ -3,6 +3,10 @@ Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'Theme.cs') -ReferencedAssemblies System.Windows.Forms,System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'Feed.cs') -ReferencedAssemblies System,System.Core
 Add-Type -Path (Join-Path $PSScriptRoot 'Overlay.cs') -ReferencedAssemblies System,System.Core
+$script:targetClient='stable'
+$clientFile=Join-Path $PSScriptRoot 'client.txt'
+if([IO.File]::Exists($clientFile) -and [IO.File]::ReadAllText($clientFile).Trim() -eq 'lazer'){$script:targetClient='lazer'}
+$script:clientMatches=$true
 $script:feed=New-Object TosuFeed
 $script:feedGeneration=-1
 [ScoreCards]::IconDirectory=Join-Path $PSScriptRoot 'assets/mods'
@@ -32,7 +36,7 @@ function Save-Session {
 function New-Session {
     if ($script:session -and !$script:session.ended) { $script:session.ended=(Get-Date).ToString('o') }
     Save-Session
-    $script:session = [pscustomobject]@{id=[guid]::NewGuid().ToString(); started=(Get-Date).ToString('o'); ended=$null; player=$null; mode=$null; baseline=$null; latest=$null; plays=@()}
+    $script:session = [pscustomobject]@{id=[guid]::NewGuid().ToString(); started=(Get-Date).ToString('o'); ended=$null; client=$script:targetClient; player=$null; mode=$null; baseline=$null; latest=$null; plays=@()}
     $script:armed=$false
     Save-Session
     Refresh-View
@@ -58,13 +62,16 @@ function Refresh-View {
     if($endButton){$endButton.Enabled=!$s.ended}
     if($sessionLabel){$sessionLabel.Text=if($s.ended){T 'СЕССИЯ ЗАВЕРШЕНА • итоги сохранены' 'SESSION FINISHED • results saved'}else{(T 'СЕССИЯ АКТИВНА • ' 'SESSION ACTIVE • ')+([datetime]$s.started).ToString('dd.MM · HH:mm')}}
     $summary.Text=T "ПРИРОСТ ПРОФИЛЯ: $gain`r`nFC: $fc     |     Завершено карт: $($plays.Count)     |     Время: $([int]$duration.TotalMinutes) мин`r`nСумма pp карт: $([math]::Round([double]$sum,2)) pp" "PROFILE PP GAIN: $gain`r`nFC: $fc     |     Maps passed: $($plays.Count)     |     Time: $([int]$duration.TotalMinutes) min`r`nTotal play pp: $([math]::Round([double]$sum,2)) pp"
+    $tileGain=if($null -ne $s.baseline -and $null -ne $s.latest){('{0:+0.00;-0.00;0.00} pp' -f ($s.latest-$s.baseline))}else{'—'}
+    $tileTime=('{0:00}:{1:00}:{2:00}' -f [int][math]::Floor($duration.TotalHours),$duration.Minutes,$duration.Seconds)
+    $summary.SetValues($tileGain,$fc,$plays.Count,$tileTime,('{0:0.00} pp' -f [double]$sum),($script:language -eq 'en'),[bool]$s.ended)
     if($emptyLabel){$emptyLabel.Visible=($plays.Count -eq 0)}
     $cardsKey="$($s.id)|$($plays.Count)"
     if($script:cardsKey -eq $cardsKey){return}
     $script:cardsKey=$cardsKey
     $bestCards.BeginUpdate()
     $bestEntries=New-Object 'System.Collections.Generic.List[ScoreEntry]'
-    if($best){$bestEntries.Add((Make-ScoreEntry $best))}
+    if($best){$bestEntries.Add((Make-ScoreEntry $best 'best'))}
     $bestCards.ReplaceCards($bestEntries.ToArray())
     $bestCards.EndUpdate()
     $bestEmpty.Visible=(!$best)
@@ -72,18 +79,19 @@ function Refresh-View {
     $scroll=$list.TopIndex
     $entries=New-Object 'System.Collections.Generic.List[ScoreEntry]'
     foreach($p in ($plays | Sort-Object time -Descending)) {
-        $entries.Add((Make-ScoreEntry $p))
+        $entries.Add((Make-ScoreEntry $p 'recent'))
     }
     $list.ReplaceCards($entries.ToArray())
     if($list.Items.Count -gt 0){$list.TopIndex=[math]::Min($scroll,$list.Items.Count-1)}
     $list.EndUpdate()
 }
-function Make-ScoreEntry($p) {
+function Make-ScoreEntry($p,$badge='') {
     $item=New-Object ScoreEntry
+    $item.Badge=$badge
     $item.Key="$($p.time)|$($p.beatmapId)|$($p.score)"
     $item.Map=$p.map;$item.Mods=$p.mods;$item.Rank=$p.rank;$item.Time=([datetime]$p.time).ToString('HH:mm:ss')
     $item.Pp=$p.pp;$item.Accuracy=$p.accuracy;$item.Combo=$p.combo;$item.Fc=$p.fc
-    $item.Stars=$p.stars;$item.FcPp=$p.fcPp;$item.Background=$p.background;$item.Url=Get-ScoreUrl $p
+    $item.Rate=[double]$p.modRate;$item.Stars=$p.stars;$item.FcPp=$p.fcPp;$item.Background=$p.background;$item.Url=Get-ScoreUrl $p
     $item.Hits=if($p.hitText){$p.hitText}else{"MISS $($p.misses)"}
     return $item
 }
@@ -98,6 +106,9 @@ function Get-ScoreUrl($p) {
     return $null
 }
 function Process-Packet($d) {
+    $incoming=if($d.client){[string]$d.client}else{'stable'}
+    $script:clientMatches=($incoming -eq $script:targetClient)
+    if(!$script:clientMatches){$script:armed=$false;$script:background=$null;$script:bgKey=$null;return}
     $s=$script:session
     if(!$s -or $s.ended){return}
     $profile=$d.profile
@@ -121,10 +132,11 @@ function Process-Packet($d) {
         if($r.score -le 0 -or $r.rank -eq 'F') {return}
         $script:armed=$false
         $m=$script:map
+        if($d.beatmap.id -eq $m.id -and $d.beatmap.stats.maxCombo -gt 0){$m=$d.beatmap}
         if(!$script:background){$script:background=Resolve-Background $d}
         $fc=($m.stats.maxCombo -gt 0 -and $r.maxCombo -ge $m.stats.maxCombo -and $r.hits.'0' -eq 0)
         $p=[pscustomobject]@{time=(Get-Date).ToString('o'); map="$($m.artist) - $($m.title) [$($m.version)]"; beatmapId=$m.id; mods=$(if($r.mods.name){$r.mods.name}else{'NM'}); pp=[math]::Round([double]$r.pp.current,2); accuracy=[math]::Round([double]$r.accuracy,2); combo=$r.maxCombo; misses=$r.hits.'0'; fc=$fc; rank=$r.rank}
-        $p | Add-Member -NotePropertyMembers @{stars=[double]$m.stats.stars.total;fcPp=[double]$r.pp.fc;background=$script:background;hitText="300: $($r.hits.'300')   100: $($r.hits.'100')   50: $($r.hits.'50')   MISS: $($r.hits.'0')";scoreId=[long]$r.scoreId;score=[long]$r.score;mode=[int]$r.mode.number;client=[string]$d.client;server=[string]$d.server}
+        $p | Add-Member -NotePropertyMembers @{modRate=[double]$r.mods.rate;modData=@($r.mods.array);stars=[double]$m.stats.stars.total;fcPp=[double]$r.pp.fc;background=$script:background;hitText="300: $($r.hits.'300')   100: $($r.hits.'100')   50: $($r.hits.'50')   MISS: $($r.hits.'0')";scoreId=[long]$r.scoreId;score=[long]$r.score;mode=[int]$r.mode.number;client=$script:targetClient;server=[string]$d.server}
         $s.plays=@($s.plays)+$p
         Queue-TopCheck $p $s.player
         Save-Session; Refresh-View
@@ -186,7 +198,7 @@ $form=New-Object SessionForm
 if(!$script:languageChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-Language)){$script:topHttp.Dispose();$form.Dispose();return}
 if(!$script:fontChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-FirstFont)){$script:topHttp.Dispose();$form.Dispose();return}
 [SessionTheme]::RoundWindow($form)
-$form.Text='osu! session tracker 2.0.1'; $form.Size=New-Object Drawing.Size(1140,920)
+$form.Text="osu! $script:targetClient session tracker 2.1 (test)"; $form.Size=New-Object Drawing.Size(1140,920)
 $form.MinimumSize=New-Object Drawing.Size(1020,860)
 $form.StartPosition='CenterScreen'
 $form.BackColor=[Drawing.Color]::FromArgb(23,20,29); $form.ForeColor=[Drawing.Color]::FromArgb(242,234,246)
@@ -200,12 +212,12 @@ $form.Font=New-Object Drawing.Font($script:uiFont,10)
 function Label($text,$x,$y,$w,$h,$size=11) {
     $l=New-Object SessionLabel; $l.Text=$text; $l.Location=New-Object Drawing.Point($x,$y); $l.Size=New-Object Drawing.Size($w,$h); $l.Font=New-Object Drawing.Font($script:uiFont,$size); $form.Controls.Add($l); return $l
 }
-$title=Label 'osu!  /  session tracker 2.0.1' 30 20 700 45 25
+$title=Label "osu! $script:targetClient / tracker 2.1" 30 20 700 45 25
 $title.ForeColor=[Drawing.Color]::FromArgb(255,155,200)
 $sessionLabel=Label '' 33 76 700 24 10
 $sessionLabel.ForeColor=[Drawing.Color]::FromArgb(180,163,193)
 $status=Label 'Подключение к tosu…' 33 109 1000 26 10
-$summary=Label '' 33 157 1040 145 13
+$summary=New-Object SessionStats;$summary.SetBounds(33,157,1040,145);$form.Controls.Add($summary)
 $summary.BackColor=[Drawing.Color]::FromArgb(38,31,46)
 $summary.Padding=New-Object Windows.Forms.Padding(20,12,12,8)
 $summary.Anchor='Top,Left,Right'
@@ -295,6 +307,7 @@ $timer.Add_Tick({
                 Process-Packet $packet
                 $status.Text="● tosu • $($packet.state.name) [$($packet.state.number)] • $(T 'записано' 'recorded'): $($script:session.plays.Count)"
                 $status.ForeColor=[Drawing.Color]::LightGreen
+                if(!$script:clientMatches){$status.Text=T "Открыт другой клиент. Эта сборка ждёт osu!$script:targetClient." "Different client detected. This build is waiting for osu!$script:targetClient.";$status.ForeColor=[Drawing.Color]::Orange}
             } elseif($packet.error){$status.Text="tosu: $($packet.error)";$status.ForeColor=[Drawing.Color]::Orange}
         }
         if($script:feed.Status -ne 'Connected'){
@@ -311,15 +324,15 @@ $timer.Add_Tick({
 $form.Add_FormClosing({$timer.Stop(); if($script:session -and !$script:session.ended){End-Session}; Disconnect; [MascotAudio]::Stop(); $script:topHttp.Dispose(); if($script:overlayServer){$script:overlayServer.Dispose()}; if($mascot.Image){$mascot.Image.Dispose()}})
 function Apply-Language {
     [ScoreCards]::English=($script:language -eq 'en')
-    $title.Text='osu!  /  session tracker 2.0.1'
+    $title.Text="osu! $script:targetClient / tracker 2.1"
     $newButton.Text=T 'Новая сессия' 'New session'
     $endButton.Text=T 'Завершить сессию' 'Finish session'
     $historyButton.Text=T 'История сессий' 'Session history'
     $exportButton.Text=T 'Экспорт CSV' 'Export CSV'
     $voiceButton.Text=if($script:voiceEnabled){T 'Голос: вкл' 'Voice: on'}else{T 'Голос: выкл' 'Voice: off'}
-    $bestHeader.Text=T 'ЛУЧШИЙ ПЛЕЙ СЕССИИ' 'BEST PLAY THIS SESSION'
+    $bestHeader.Text=T '★ BEST / ЛУЧШИЙ ПЛЕЙ СЕССИИ' '★ BEST / BEST PLAY THIS SESSION'
     $bestEmpty.Text=T 'Твой лучший плей появится здесь ♡' 'Your best play will appear here ♡'
-    $section.Text=T 'СКОРЫ СЕССИИ' 'SESSION SCORES'
+    $section.Text=T '◷ RECENT / НЕДАВНИЕ СКОРЫ' '◷ RECENT / RECENT SCORES'
     $emptyLabel.Text=T 'Пока нет скоров. Пройди карту — результат появится здесь.' 'No scores yet. Finish a beatmap to see your result here.'
     $hint.Text=T 'pp карт — расчёт tosu. Прирост профиля обновляется отдельно.' 'Play pp is calculated by tosu. Profile pp updates separately.'
     $status.Text=T 'Подключение к tosu…' 'Connecting to tosu…'

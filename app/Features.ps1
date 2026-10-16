@@ -3,7 +3,7 @@ $script:topChecks=New-Object 'System.Collections.Generic.List[object]'
 [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 $script:topHttp=New-Object Net.Http.HttpClient
 $script:topHttp.Timeout=[timespan]::FromSeconds(12)
-$script:topHttp.DefaultRequestHeaders.UserAgent.ParseAdd('OsuSessionTracker/1.6')
+$script:topHttp.DefaultRequestHeaders.UserAgent.ParseAdd('OsuSessionTracker/2.1')
 $script:topHttp.DefaultRequestHeaders.Add('X-Requested-With','XMLHttpRequest')
 $script:topRequest=$null
 $script:topJob=$null
@@ -38,7 +38,7 @@ function Find-TopPosition($p,$scores) {
         $date=if($score.ended_at){$score.ended_at}else{$score.created_at}
         if(!$date){continue}
         try{$seconds=[math]::Abs(([datetimeoffset]::Parse($date)-[datetimeoffset]::Parse($p.time)).TotalSeconds)}catch{continue}
-        $total=if($null -ne $score.legacy_total_score){$score.legacy_total_score}else{$score.score}
+        $total=if($p.client -eq 'lazer' -and $null -ne $score.total_score){$score.total_score}elseif($null -ne $score.legacy_total_score){$score.legacy_total_score}else{$score.score}
         $mods=@($score.mods | ForEach-Object {if($_ -is [string]){$_}else{$_.acronym}}) -join ''
         $actual=([ScoreCards]::ParseMods($mods) | Where-Object {$_ -ne 'NM'} | Sort-Object) -join ','
         $expected=([ScoreCards]::ParseMods($p.mods) | Where-Object {$_ -ne 'NM'} | Sort-Object) -join ','
@@ -86,7 +86,8 @@ function Tick-Features {
             $job.attempt++
             $mode=@('osu','taiko','fruits','mania')[[math]::Max(0,[math]::Min(3,[int]$job.play.mode))]
             $script:topJob=$job
-            $script:topRequest=$script:topHttp.GetStringAsync("https://osu.ppy.sh/users/$($job.player)/scores/best?mode=$mode&limit=5&offset=0")
+            $legacy=if($script:targetClient -eq 'lazer'){'&legacy_only=0'}else{''}
+            $script:topRequest=$script:topHttp.GetStringAsync("https://osu.ppy.sh/users/$($job.player)/scores/best?mode=$mode&limit=5&offset=0$legacy")
         }
     }
 }

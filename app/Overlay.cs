@@ -18,7 +18,8 @@ public sealed class ObsOverlay : IDisposable {
     public string RegisterImage(string path){
         if(String.IsNullOrEmpty(path)||!File.Exists(path))return "";
         string ext=Path.GetExtension(path).ToLowerInvariant();
-        if(ext!=".png"&&ext!=".jpg"&&ext!=".jpeg"&&ext!=".bmp")return "";
+        // Lazer realm assets use hash names with no image extension.
+        if(ext!=""&&ext!=".png"&&ext!=".jpg"&&ext!=".jpeg"&&ext!=".bmp")return "";
         lock(images){
             string url;if(imagePaths.TryGetValue(path,out url))return url;
             if(images.Count>=256){images.Clear();imagePaths.Clear();}
@@ -28,14 +29,16 @@ public sealed class ObsOverlay : IDisposable {
     public int Port {get;private set;}
     public string Url {get{return "http://127.0.0.1:"+Port+"/";}}
     public void SetState(string json){Interlocked.Exchange(ref state,json);}
-    public void Start(string page){
+    public void Start(string page){Start(page,24051,24059);}
+    public void StartPreview(string page){Start(page,24151,24159);}
+    void Start(string page,int firstPort,int lastPort){
         if(listener!=null)return;
         html=File.ReadAllText(page);
-        for(int port=24051;port<=24059;port++){
+        for(int port=firstPort;port<=lastPort;port++){
             var attempt=new TcpListener(IPAddress.Loopback,port);
             try{attempt.Start(16);listener=attempt;Port=port;break;}catch(SocketException){attempt.Stop();}
         }
-        if(listener==null)throw new IOException("Overlay ports 24051-24059 are busy.");
+        if(listener==null)throw new IOException("Overlay ports "+firstPort+"-"+lastPort+" are busy.");
         cancel=new CancellationTokenSource();worker=Task.Run(()=>AcceptLoop(cancel.Token));
     }
     async Task AcceptLoop(CancellationToken token){
@@ -61,7 +64,10 @@ public sealed class ObsOverlay : IDisposable {
                 string path;lock(images){images.TryGetValue(parts[1],out path);}
                 if(path!=null&&File.Exists(path)&&new FileInfo(path).Length<=26214400){
                     bytes=File.ReadAllBytes(path);asset=true;
-                    string ext=Path.GetExtension(path).ToLowerInvariant();type=ext==".png"?"image/png":ext==".bmp"?"image/bmp":"image/jpeg";
+                    if(bytes.Length>=8&&bytes[0]==137&&bytes[1]==80&&bytes[2]==78&&bytes[3]==71)type="image/png";
+                    else if(bytes.Length>=3&&bytes[0]==255&&bytes[1]==216&&bytes[2]==255)type="image/jpeg";
+                    else if(bytes.Length>=2&&bytes[0]==66&&bytes[1]==77)type="image/bmp";
+                    else{bytes=null;asset=false;code="404 Not Found";body="Not an image";}
                 }else{code="404 Not Found";body="Not found";}
             }
             else{code="404 Not Found";body="Not found";}

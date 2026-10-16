@@ -12,11 +12,13 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 [assembly: System.Reflection.AssemblyTitle("osu! Session Tracker")]
-[assembly: System.Reflection.AssemblyVersion("2.0.1.0")]
-[assembly: System.Reflection.AssemblyFileVersion("2.0.1.0")]
+[assembly: System.Reflection.AssemblyVersion("2.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("2.1.0.0")]
 
 internal static class Launcher {
     static string Root=AppDomain.CurrentDomain.BaseDirectory;
+    static readonly string Client=ReadClient();
+    static string ReadClient(){try{return File.ReadAllText(Path.Combine(Root,"app","client.txt")).Trim()=="lazer"?"lazer":"stable";}catch{return "stable";}}
     static int TosuPort=24050;
     static Process ManagedTosu;
     [STAThread]
@@ -27,7 +29,7 @@ internal static class Launcher {
         try{
             if(check){Validate();File.WriteAllText(Path.Combine(Root,"build-check.txt"),"PASS: files, bundled tosu and PowerShell syntax");return 0;}
             bool first;
-            using(var mutex=new Mutex(true,"Local\\OsuSessionTrackerDesktop",out first)){
+            using(var mutex=new Mutex(true,"Local\\OsuSessionTrackerDesktop_"+Client,out first)){
                 if(!first){if(!uiTest)MessageBox.Show(L("Трекер уже запущен.","The tracker is already running."),"osu! session tracker");return 0;}
                 try{
                     Validate();
@@ -61,7 +63,7 @@ internal static class Launcher {
         }
     }
     static void Validate(){
-        foreach(string file in new[]{"app/Tracker.ps1","app/Features.ps1","app/Localization.ps1","app/Desktop.ps1","app/Feed.cs","app/Overlay.cs","app/Theme.cs","app/assets/mascot.png","app/assets/menu-background.png","app/assets/overlay.html","app/assets/welcome-ja.wav","tosu/tosu.exe"})
+        foreach(string file in new[]{"app/client.txt","app/Tracker.ps1","app/Features.ps1","app/Localization.ps1","app/Desktop.ps1","app/Feed.cs","app/Overlay.cs","app/Theme.cs","app/assets/mascot.png","app/assets/menu-background.png","app/assets/overlay.html","app/assets/welcome-ja.wav","tosu/tosu.exe"})
             if(!File.Exists(Path.Combine(Root,file)))throw new FileNotFoundException(L("Распакуй всю папку программы. Не найден файл: ","Extract the entire app folder. Missing file: ")+file);
         foreach(string file in Directory.GetFiles(Path.Combine(Root,"app"),"*.ps1")){
             Token[] tokens;ParseError[] errors;Parser.ParseFile(file,out tokens,out errors);
@@ -94,6 +96,11 @@ internal static class Launcher {
     }
     static void StopTosu(){
         var process=ManagedTosu;ManagedTosu=null;if(process==null)return;
+        // Both editions can share tosu. The final running tracker closes it.
+        string other=Client=="lazer"?"OsuSessionTracker":"OsuSessionTrackerLazer";
+        var peers=Process.GetProcessesByName(other);bool otherRunning=false;
+        foreach(var peer in peers){if(peer.Id!=Process.GetCurrentProcess().Id)otherRunning=true;peer.Dispose();}
+        if(otherRunning){process.Dispose();return;}
         try{if(!process.HasExited){if(!process.CloseMainWindow()||!process.WaitForExit(1000)){process.Kill();process.WaitForExit(1500);}}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}
         finally{process.Dispose();}
     }

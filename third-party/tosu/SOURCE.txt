@@ -1,0 +1,11 @@
+tosu v4.26.2, bundled unchanged from the user's official release archive.
+Copyright (C) 2023-2026 Mikhail Babynichev and tosu contributors.
+License: GNU LGPL v3, incorporating GNU GPL v3.
+License text: LICENSE.txt
+GPL v3 terms: https://www.gnu.org/licenses/gpl-3.0.txt
+Corresponding version source and build instructions:
+https://github.com/tosuapp/tosu/tree/v4.26.2
+Source archive: https://github.com/tosuapp/tosu/archive/refs/tags/v4.26.2.zip
+Official releases: https://github.com/tosuapp/tosu/releases/tag/v4.26.2
+The tracker starts tosu as a separate process through its public local API.
+You can replace tosu.exe with an updated compatible version.

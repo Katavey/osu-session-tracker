@@ -12,8 +12,8 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 [assembly: System.Reflection.AssemblyTitle("osu! Session Tracker")]
-[assembly: System.Reflection.AssemblyVersion("2.1.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("2.1.0.0")]
+[assembly: System.Reflection.AssemblyVersion("2.2.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("2.2.0.0")]
 
 internal static class Launcher {
     static string Root=AppDomain.CurrentDomain.BaseDirectory;

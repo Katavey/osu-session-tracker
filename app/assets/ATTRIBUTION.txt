@@ -6,3 +6,8 @@ Downloaded 2026-10-16. Distributed under GNU AGPL v3;
 see OSU-WEB-LICENCE.txt. Original SVGs included in mods/source-svg.
 Changes: coloured masks, composited badge and symbol, PNG conversion.
 Tracker source is included as Tracker.ps1 and Theme.cs.
+
+Full lazer mod set: 69 unique mods + No Mod (70 badges).
+Official mapping: database/mods.json in ppy/osu-web.
+Source revision: 2b41065adeaebc5e918ef8599e815ab81ed27140
+Original SVGs and MODS-MANIFEST.json included in mods/.

@@ -1,0 +1,355 @@
+{
+  "commit": "2b41065adeaebc5e918ef8599e815ab81ed27140",
+  "mods": [
+    {
+      "mod": "EZ",
+      "name": "easy",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "NF",
+      "name": "no-fail",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "HT",
+      "name": "half-time",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "DC",
+      "name": "daycore",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "HR",
+      "name": "hard-rock",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "SD",
+      "name": "sudden-death",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "PF",
+      "name": "perfect",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "DT",
+      "name": "double-time",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "NC",
+      "name": "nightcore",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "HD",
+      "name": "hidden",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "TC",
+      "name": "traceable",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "FL",
+      "name": "flashlight",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "BL",
+      "name": "blinds",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "ST",
+      "name": "strict-tracking",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "AC",
+      "name": "accuracy-challenge",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "TP",
+      "name": "target-practice",
+      "type": "Conversion"
+    },
+    {
+      "mod": "DA",
+      "name": "difficulty-adjust",
+      "type": "Conversion"
+    },
+    {
+      "mod": "CL",
+      "name": "classic",
+      "type": "Conversion"
+    },
+    {
+      "mod": "RD",
+      "name": "random",
+      "type": "Conversion"
+    },
+    {
+      "mod": "MR",
+      "name": "mirror",
+      "type": "Conversion"
+    },
+    {
+      "mod": "AL",
+      "name": "alternate",
+      "type": "Conversion"
+    },
+    {
+      "mod": "SG",
+      "name": "single-tap",
+      "type": "Conversion"
+    },
+    {
+      "mod": "AT",
+      "name": "autoplay",
+      "type": "Automation"
+    },
+    {
+      "mod": "CN",
+      "name": "cinema",
+      "type": "Automation"
+    },
+    {
+      "mod": "RX",
+      "name": "relax",
+      "type": "Automation"
+    },
+    {
+      "mod": "AP",
+      "name": "autopilot",
+      "type": "Automation"
+    },
+    {
+      "mod": "SO",
+      "name": "spun-out",
+      "type": "Automation"
+    },
+    {
+      "mod": "TR",
+      "name": "transform",
+      "type": "Fun"
+    },
+    {
+      "mod": "WG",
+      "name": "wiggle",
+      "type": "Fun"
+    },
+    {
+      "mod": "SI",
+      "name": "spin-in",
+      "type": "Fun"
+    },
+    {
+      "mod": "GR",
+      "name": "grow",
+      "type": "Fun"
+    },
+    {
+      "mod": "DF",
+      "name": "deflate",
+      "type": "Fun"
+    },
+    {
+      "mod": "WU",
+      "name": "wind-up",
+      "type": "Fun"
+    },
+    {
+      "mod": "WD",
+      "name": "wind-down",
+      "type": "Fun"
+    },
+    {
+      "mod": "BR",
+      "name": "barrel-roll",
+      "type": "Fun"
+    },
+    {
+      "mod": "AD",
+      "name": "approach-different",
+      "type": "Fun"
+    },
+    {
+      "mod": "MU",
+      "name": "muted",
+      "type": "Fun"
+    },
+    {
+      "mod": "NS",
+      "name": "no-scope",
+      "type": "Fun"
+    },
+    {
+      "mod": "MG",
+      "name": "magnetised",
+      "type": "Fun"
+    },
+    {
+      "mod": "RP",
+      "name": "repel",
+      "type": "Fun"
+    },
+    {
+      "mod": "AS",
+      "name": "adaptive-speed",
+      "type": "Fun"
+    },
+    {
+      "mod": "FR",
+      "name": "freeze-frame",
+      "type": "Fun"
+    },
+    {
+      "mod": "BU",
+      "name": "bubbles",
+      "type": "Fun"
+    },
+    {
+      "mod": "SY",
+      "name": "synesthesia",
+      "type": "Fun"
+    },
+    {
+      "mod": "DP",
+      "name": "depth",
+      "type": "Fun"
+    },
+    {
+      "mod": "BM",
+      "name": "bloom",
+      "type": "Fun"
+    },
+    {
+      "mod": "TD",
+      "name": "touch-device",
+      "type": "System"
+    },
+    {
+      "mod": "SV2",
+      "name": "score-v2",
+      "type": "System"
+    },
+    {
+      "mod": "SR",
+      "name": "simplified-rhythm",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "SW",
+      "name": "swap",
+      "type": "Conversion"
+    },
+    {
+      "mod": "CS",
+      "name": "constant-speed",
+      "type": "Conversion"
+    },
+    {
+      "mod": "FF",
+      "name": "floating-fruits",
+      "type": "Fun"
+    },
+    {
+      "mod": "MF",
+      "name": "moving-fast",
+      "type": "Fun"
+    },
+    {
+      "mod": "NR",
+      "name": "no-release",
+      "type": "DifficultyReduction"
+    },
+    {
+      "mod": "FI",
+      "name": "fade-in",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "CO",
+      "name": "cover",
+      "type": "DifficultyIncrease"
+    },
+    {
+      "mod": "DS",
+      "name": "dual-stages",
+      "type": "Conversion"
+    },
+    {
+      "mod": "IN",
+      "name": "invert",
+      "type": "Conversion"
+    },
+    {
+      "mod": "HO",
+      "name": "hold-off",
+      "type": "Conversion"
+    },
+    {
+      "mod": "1K",
+      "name": "one-key",
+      "type": "Conversion"
+    },
+    {
+      "mod": "2K",
+      "name": "two-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "3K",
+      "name": "three-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "4K",
+      "name": "four-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "5K",
+      "name": "five-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "6K",
+      "name": "six-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "7K",
+      "name": "seven-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "8K",
+      "name": "eight-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "9K",
+      "name": "nine-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "10K",
+      "name": "ten-keys",
+      "type": "Conversion"
+    },
+    {
+      "mod": "NM",
+      "name": "no-mod",
+      "type": "System"
+    }
+  ]
+}

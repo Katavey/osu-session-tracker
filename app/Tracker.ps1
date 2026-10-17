@@ -26,7 +26,7 @@ $script:resultSince = $null
 $script:profile = $null
 $script:retry = [datetime]::MinValue
 function Save-Session {
-    if ($script:session) {
+    if ($script:session -and @($script:session.plays).Count -gt 0) {
         $path = Join-Path $dataDir ($script:session.id + '.json')
         $temp = $path + '.tmp'
         $script:session | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $temp -Encoding UTF8
@@ -53,7 +53,7 @@ function Refresh-View {
     $s=$script:session
     $plays=@($s.plays)
     $sum=($plays | Measure-Object pp -Sum).Sum
-    $best=$plays | Sort-Object pp -Descending | Select-Object -First 1
+    $best=Get-SessionBest $plays
     $fc=@($plays | Where-Object fc).Count
     $gain=T 'ожидание профиля' 'waiting for profile'
     if ($null -ne $s.baseline -and $null -ne $s.latest) { $gain=('{0:+0.00;-0.00;0.00} pp' -f ($s.latest-$s.baseline)) }
@@ -117,7 +117,7 @@ function Process-Packet($d) {
         if ($null -ne $s.player -and ($s.player -ne $profile.id -or $s.mode -ne $mode)) {
             $s.ended=(Get-Date).ToString('o'); New-Session; $s=$script:session
         }
-        if($null -eq $s.baseline) { $s.player=$profile.id; $s.mode=$mode; $s.baseline=[double]$profile.pp }
+        if($null -eq $s.baseline) { $s|Add-Member -NotePropertyName playerName -NotePropertyValue ([string]$profile.name) -Force; $s.player=$profile.id; $s.mode=$mode; $s.baseline=[double]$profile.pp }
         if($s.latest -ne $profile.pp) { $s.latest=[double]$profile.pp; Save-Session }
     }
     $state=[int]$d.state.number
@@ -136,7 +136,8 @@ function Process-Packet($d) {
         if(!$script:background){$script:background=Resolve-Background $d}
         $fc=($m.stats.maxCombo -gt 0 -and $r.maxCombo -ge $m.stats.maxCombo -and $r.hits.'0' -eq 0)
         $p=[pscustomobject]@{time=(Get-Date).ToString('o'); map="$($m.artist) - $($m.title) [$($m.version)]"; beatmapId=$m.id; mods=$(if($r.mods.name){$r.mods.name}else{'NM'}); pp=[math]::Round([double]$r.pp.current,2); accuracy=[math]::Round([double]$r.accuracy,2); combo=$r.maxCombo; misses=$r.hits.'0'; fc=$fc; rank=$r.rank}
-        $p | Add-Member -NotePropertyMembers @{modRate=[double]$r.mods.rate;modData=@($r.mods.array);stars=[double]$m.stats.stars.total;fcPp=[double]$r.pp.fc;background=$script:background;hitText="300: $($r.hits.'300')   100: $($r.hits.'100')   50: $($r.hits.'50')   MISS: $($r.hits.'0')";scoreId=[long]$r.scoreId;score=[long]$r.score;mode=[int]$r.mode.number;client=$script:targetClient;server=[string]$d.server}
+        $mapStatus=Get-BeatmapStatus $m;if($mapStatus -eq 'unknown'){$mapStatus=Get-BeatmapStatus $script:map}
+        $p | Add-Member -NotePropertyMembers @{mapStatus=$mapStatus;modRate=[double]$r.mods.rate;modData=@($r.mods.array);stars=[double]$m.stats.stars.total;fcPp=[double]$r.pp.fc;background=$script:background;hitText="300: $($r.hits.'300')   100: $($r.hits.'100')   50: $($r.hits.'50')   MISS: $($r.hits.'0')";scoreId=[long]$r.scoreId;score=[long]$r.score;mode=[int]$r.mode.number;client=$script:targetClient;server=[string]$d.server}
         $s.plays=@($s.plays)+$p
         Queue-TopCheck $p $s.player
         Save-Session; Refresh-View
@@ -145,6 +146,8 @@ function Process-Packet($d) {
         $last=$s.plays[-1]; $r=$d.resultsScreen
         if($last.score -eq $r.score -and $last.combo -eq $r.maxCombo -and $last.beatmapId -eq $d.beatmap.id){
             $changed=$false
+            $lateStatus=Get-BeatmapStatus $d.beatmap
+            if($lateStatus -ne 'unknown' -and $last.mapStatus -ne $lateStatus){$last|Add-Member -NotePropertyName mapStatus -NotePropertyValue $lateStatus -Force;$changed=$true}
             if($last.scoreId -le 0 -and $r.scoreId -gt 0){$last.scoreId=[long]$r.scoreId;$changed=$true}
             if($null -ne $r.pp.current -and $last.pp -ne [math]::Round([double]$r.pp.current,2)){$last.pp=[math]::Round([double]$r.pp.current,2);$last.fcPp=[double]$r.pp.fc;$changed=$true}
             if($changed){$script:cardsKey=$null;Save-Session;Refresh-View}
@@ -198,7 +201,7 @@ $form=New-Object SessionForm
 if(!$script:languageChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-Language)){$script:topHttp.Dispose();$form.Dispose();return}
 if(!$script:fontChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-FirstFont)){$script:topHttp.Dispose();$form.Dispose();return}
 [SessionTheme]::RoundWindow($form)
-$form.Text="osu! $script:targetClient session tracker 2.1 (test)"; $form.Size=New-Object Drawing.Size(1140,920)
+$form.Text="osu! $script:targetClient session tracker 2.2 (test)"; $form.Size=New-Object Drawing.Size(1140,920)
 $form.MinimumSize=New-Object Drawing.Size(1020,860)
 $form.StartPosition='CenterScreen'
 $form.BackColor=[Drawing.Color]::FromArgb(23,20,29); $form.ForeColor=[Drawing.Color]::FromArgb(242,234,246)
@@ -212,7 +215,7 @@ $form.Font=New-Object Drawing.Font($script:uiFont,10)
 function Label($text,$x,$y,$w,$h,$size=11) {
     $l=New-Object SessionLabel; $l.Text=$text; $l.Location=New-Object Drawing.Point($x,$y); $l.Size=New-Object Drawing.Size($w,$h); $l.Font=New-Object Drawing.Font($script:uiFont,$size); $form.Controls.Add($l); return $l
 }
-$title=Label "osu! $script:targetClient / tracker 2.1" 30 20 700 45 25
+$title=Label "osu! $script:targetClient / tracker 2.2" 30 20 700 45 25
 $title.ForeColor=[Drawing.Color]::FromArgb(255,155,200)
 $sessionLabel=Label '' 33 76 700 24 10
 $sessionLabel.ForeColor=[Drawing.Color]::FromArgb(180,163,193)
@@ -258,11 +261,7 @@ $newButton=Button 'Новая сессия' 33 180 $true {
 }
 $endButton=Button 'Завершить сессию' 225 205 $false {End-Session}
 $historyButton=Button 'История сессий' 442 185 $false {Show-SessionHistory}
-$exportButton=Button 'Экспорт CSV' 639 170 $false {
-    $dialog=New-Object Windows.Forms.SaveFileDialog; $dialog.Filter='CSV (*.csv)|*.csv'; $dialog.FileName='osu-session.csv'
-    if($dialog.ShowDialog() -eq 'OK'){$script:session.plays | Export-Csv -LiteralPath $dialog.FileName -NoTypeInformation -Encoding UTF8}
-    $dialog.Dispose()
-}
+$exportButton=Button 'Карточка итогов' 639 170 $false {Show-SessionCard $script:session}
 $voiceText=if($script:voiceEnabled){'Голос: вкл'}else{'Голос: выкл'}
 $voiceButton=Button $voiceText 822 190 $false {Toggle-Voice}
 $hint=Label 'pp карт — расчёт tosu. Прирост профиля обновляется отдельно.' 33 850 1020 24 9
@@ -324,11 +323,11 @@ $timer.Add_Tick({
 $form.Add_FormClosing({$timer.Stop(); if($script:session -and !$script:session.ended){End-Session}; Disconnect; [MascotAudio]::Stop(); $script:topHttp.Dispose(); if($script:overlayServer){$script:overlayServer.Dispose()}; if($mascot.Image){$mascot.Image.Dispose()}})
 function Apply-Language {
     [ScoreCards]::English=($script:language -eq 'en')
-    $title.Text="osu! $script:targetClient / tracker 2.1"
+    $title.Text="osu! $script:targetClient / tracker 2.2"
     $newButton.Text=T 'Новая сессия' 'New session'
     $endButton.Text=T 'Завершить сессию' 'Finish session'
     $historyButton.Text=T 'История сессий' 'Session history'
-    $exportButton.Text=T 'Экспорт CSV' 'Export CSV'
+    $exportButton.Text=T 'Карточка итогов' 'Session card'
     $voiceButton.Text=if($script:voiceEnabled){T 'Голос: вкл' 'Voice: on'}else{T 'Голос: выкл' 'Voice: off'}
     $bestHeader.Text=T '★ BEST / ЛУЧШИЙ ПЛЕЙ СЕССИИ' '★ BEST / BEST PLAY THIS SESSION'
     $bestEmpty.Text=T 'Твой лучший плей появится здесь ♡' 'Your best play will appear here ♡'

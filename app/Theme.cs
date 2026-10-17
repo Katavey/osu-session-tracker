@@ -238,7 +238,7 @@ public class ScoreCards : ScrollableControl {
         foreach(Match m in Regex.Matches((value??"NM").ToUpperInvariant(),@"10K|[1-9]K|SV2|[A-Z]{2}")){
             if(!result.Contains(m.Value))result.Add(m.Value);
         }
-        if(result.Contains("NC"))result.Remove("DT");if(result.Contains("PF"))result.Remove("SD");
+        if(result.Contains("NC"))result.Remove("DT");if(result.Contains("DC"))result.Remove("HT");if(result.Contains("PF"))result.Remove("SD");
         return result.ToArray();
     }
     Image ModIcon(string mod){
@@ -270,12 +270,13 @@ public class ScoreCards : ScrollableControl {
         DrawLabel(g,p.Map,title,Color.White,new Rectangle(x+92,y+15,cw,25));
         string star=(p.Rate>0&&Math.Abs(p.Rate-1)>.001?p.Rate.ToString("0.00")+"x · ":"")+(p.Stars>0?p.Stars.ToString("0.00")+" ★  ·  ":"");
         int mx=x+92;
-        foreach(string mod in ParseMods(p.Mods)){
-            if(mx+36>x+92+cw/2)break;
+        var parsedMods=ParseMods(p.Mods);int modWidth=Math.Min(34,Math.Max(16,(cw-160)/Math.Max(1,parsedMods.Length)-3));
+        foreach(string mod in parsedMods){
+            if(mx+modWidth>x+92+cw-120)break;
             var icon=ModIcon(mod);
-            if(icon!=null)g.DrawImage(icon,new Rectangle(mx,y+40,34,24));
-            else DrawLabel(g,mod,small,Color.White,new Rectangle(mx,y+43,34,20));
-            mx+=37;
+            if(icon!=null)g.DrawImage(icon,new Rectangle(mx,y+42,modWidth,Math.Max(12,modWidth*7/10)));
+            else DrawLabel(g,mod,small,Color.White,new Rectangle(mx,y+43,modWidth,20));
+            mx+=modWidth+3;
         }
         DrawLabel(g,star+p.Accuracy.ToString("0.00")+"%  ·  "+p.Combo+"x"+(p.Fc?"  ·  FC":""),small,Color.FromArgb(255,207,137),new Rectangle(mx+8,y+45,Math.Max(0,x+92+cw-mx-8),20));
         string[] judgments=(p.Hits??"").Split(new string[]{"   "},StringSplitOptions.RemoveEmptyEntries);
@@ -287,7 +288,7 @@ public class ScoreCards : ScrollableControl {
             DrawLabel(g,judgments[h],small,hitColors[Math.Min(h,3)],new Rectangle(hx,y+72,hw,20));hx+=hw;
         }
         if(RowHeight>=110&&hx+85<x+92+cw)DrawLabel(g,p.Time,small,Color.FromArgb(180,168,191),new Rectangle(hx+5,y+72,80,20));
-        DrawLabel(g,p.Pp.ToString("0.00")+" pp",big,ControlPaint.Light(SessionTheme.Accent),new Rectangle(x+w-205,y+18,185,40),TextFormatFlags.Right);
+        if(RowHeight<110){using(var compactPp=new Font(SessionTheme.FontName,16,FontStyle.Bold))DrawLabel(g,p.Pp.ToString("0.00")+" pp",compactPp,ControlPaint.Light(SessionTheme.Accent),new Rectangle(x+w-205,y+14,185,32),TextFormatFlags.Right);}else DrawLabel(g,p.Pp.ToString("0.00")+" pp",big,ControlPaint.Light(SessionTheme.Accent),new Rectangle(x+w-205,y+18,185,40),TextFormatFlags.Right);
         if(p.FcPp>0){
             string forecast="(if FC "+p.FcPp.ToString("0.00")+" pp)";
             using(var forecastFont=new Font(SessionTheme.FontName,8.7f,FontStyle.Bold)){
@@ -308,13 +309,15 @@ public class SettingsPreview : Control {
     Image wallpaper,mascot;
     string wallpaperPath;
     public Color AccentColor=Color.FromArgb(239,105,164);
+    public Color PanelColor=Color.FromArgb(23,19,32);
     public int Dim=67;
     public bool ShowMascot=true,Compact,ObsMode,ShowBest=true,ShowStats=true;
     public int RecentCount=3,CardHeight=110,PanelOpacity=89,OverlayWidth=720;
     public string PreviewFont="Segoe UI",Animation="slide";
+    public int AnimationSpeed=100;
     readonly System.Windows.Forms.Timer timer=new System.Windows.Forms.Timer();
     readonly System.Diagnostics.Stopwatch clock=new System.Diagnostics.Stopwatch();
-    public SettingsPreview(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);timer.Interval=16;timer.Tick+=(s,e)=>{if(clock.ElapsedMilliseconds>400)timer.Stop();Invalidate();};}
+    public SettingsPreview(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.ResizeRedraw,true);timer.Interval=16;timer.Tick+=(s,e)=>{if(clock.ElapsedMilliseconds>40000.0/Math.Max(25,AnimationSpeed))timer.Stop();Invalidate();};}
     public void SetWallpaper(string path){if(path==wallpaperPath)return;wallpaperPath=path;var old=wallpaper;wallpaper=null;try{if(File.Exists(path))using(var image=Image.FromFile(path))wallpaper=new Bitmap(image);}catch{}if(old!=null)old.Dispose();Invalidate();}
     public void SetMascot(string path){try{if(File.Exists(path))using(var image=Image.FromFile(path))mascot=new Bitmap(image);}catch{}}
     public void StopPreview(){timer.Stop();Invalidate();}
@@ -323,10 +326,10 @@ public class SettingsPreview : Control {
         var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Color.FromArgb(23,20,29));
         if(!ObsMode&&wallpaper!=null){float scale=Math.Max((float)Width/wallpaper.Width,(float)Height/wallpaper.Height);float sw=Width/scale,sh=Height/scale;g.DrawImage(wallpaper,ClientRectangle,(wallpaper.Width-sw)/2,(wallpaper.Height-sh)/2,sw,sh,GraphicsUnit.Pixel);using(var dim=new SolidBrush(Color.FromArgb(Dim*255/100,0,0,0)))g.FillRectangle(dim,ClientRectangle);}
         using(var title=new Font(PreviewFont,15,FontStyle.Bold))using(var body=new Font(PreviewFont,10))using(var big=new Font(PreviewFont,21,FontStyle.Bold))using(var small=new Font(PreviewFont,8))using(var accent=new SolidBrush(AccentColor)){
-            if(!ObsMode){g.DrawString("osu! / session tracker 2.1",title,accent,18,18);g.DrawString("+23.35 pp     3 FC     8 plays",body,Brushes.White,18,60);DrawAnimatedPreviewCard(g,20,110,Width-40,Compact?90:110,body,big,small,accent,"slide");if(ShowMascot&&mascot!=null){int h=Math.Min(Height-250,310),w=(int)(h*(double)mascot.Width/mascot.Height);g.DrawImage(mascot,new Rectangle((Width-w)/2,240,w,h));}return;}
+            if(!ObsMode){g.DrawString("osu! / session tracker 2.2",title,accent,18,18);g.DrawString("+23.35 pp     3 FC     8 plays",body,Brushes.White,18,60);DrawAnimatedPreviewCard(g,20,110,Width-40,Compact?90:110,body,big,small,accent,"slide");if(ShowMascot&&mascot!=null){int h=Math.Min(Height-250,310),w=(int)(h*(double)mascot.Width/mascot.Height);g.DrawImage(mascot,new Rectangle((Width-w)/2,240,w,h));}return;}
             // Checkerboard lets the user see the panel transparency.
             for(int y=0;y<Height;y+=20)for(int x=0;x<Width;x+=20)using(var b=new SolidBrush((x/20+y/20)%2==0?Color.FromArgb(61,60,69):Color.FromArgb(44,43,52)))g.FillRectangle(b,x,y,20,20);
-            using(var panel=new SolidBrush(Color.FromArgb(PanelOpacity*255/100,23,19,32)))g.FillRectangle(panel,8,8,Width-16,Height-16);
+            using(var panel=new SolidBrush(Color.FromArgb(PanelOpacity*255/100,PanelColor)))g.FillRectangle(panel,8,8,Width-16,Height-16);
             float previewHeight=65+(ShowStats?60:0)+(RecentCount+(ShowBest?1:0))*(CardHeight+8)+(ShowBest?22:0);float factor=Math.Min(1f,Math.Min((Width-32f)/OverlayWidth,(Height-32f)/previewHeight));var saved=g.Save();g.TranslateTransform(16,16);g.ScaleTransform(factor,factor);int yPos=0;
             g.DrawString("osu! / OBS PREVIEW",title,Brushes.White,8,yPos);yPos+=40;
             if(ShowStats){g.DrawString("+23.35 pp    3 FC    8 plays",big,accent,8,yPos);yPos+=60;}
@@ -336,15 +339,18 @@ public class SettingsPreview : Control {
         }
     }
     void DrawAnimatedPreviewCard(Graphics g,int x,int y,int width,int height,Font body,Font big,Font small,Brush accent,string animation){
-        double t=timer.Enabled?Math.Min(1,clock.ElapsedMilliseconds/400.0):1;
+        double t=timer.Enabled?Math.Min(1,clock.ElapsedMilliseconds/(40000.0/Math.Max(25,AnimationSpeed))):1;
+        if(animation=="rise")y+=(int)(28*Math.Pow(1-t,3));
+        if(animation=="bounce")y-=(int)(Math.Sin(t*Math.PI*3)*22*(1-t));
         if(animation=="slide")x+=(int)(28*Math.Pow(1-t,3));
         if(animation=="fade"&&t<1){using(var bitmap=new Bitmap(width,height)){using(var bg=Graphics.FromImage(bitmap))DrawPreviewCard(bg,0,0,width,height,body,big,small,accent);using(var attrs=new System.Drawing.Imaging.ImageAttributes()){var matrix=new System.Drawing.Imaging.ColorMatrix();matrix.Matrix33=(float)t;attrs.SetColorMatrix(matrix);g.DrawImage(bitmap,new Rectangle(x,y,width,height),0,0,width,height,GraphicsUnit.Pixel,attrs);}}return;}
-        var saved=g.Save();if(animation=="pop"&&t<1){float scale=(float)(.9+.1*t);g.TranslateTransform(x+width/2f,y+height/2f);g.ScaleTransform(scale,scale);g.TranslateTransform(-x-width/2f,-y-height/2f);}
+        var saved=g.Save();if(animation=="wipe"&&t<1)g.SetClip(new Rectangle(x,y,Math.Max(1,(int)(width*t)),height));if(animation=="flip"&&t<1){g.TranslateTransform(x+width/2f,0);g.ScaleTransform((float)Math.Max(.02,t),1);g.TranslateTransform(-x-width/2f,0);}
+        if(animation=="pop"&&t<1){float scale=(float)(.9+.1*t);g.TranslateTransform(x+width/2f,y+height/2f);g.ScaleTransform(scale,scale);g.TranslateTransform(-x-width/2f,-y-height/2f);}
         DrawPreviewCard(g,x,y,width,height,body,big,small,accent);g.Restore(saved);
     }
     void DrawPreviewCard(Graphics g,int x,int y,int width,int height,Font body,Font big,Font small,Brush accent){
         var box=new Rectangle(x,y,width,height-5);using(var shape=SessionTheme.Rounded(box,14)){var old=g.Save();g.SetClip(shape);using(var b=new SolidBrush(Color.FromArgb(38,31,46)))g.FillRectangle(b,box);if(wallpaper!=null){g.DrawImage(wallpaper,box);using(var shade=new SolidBrush(Color.FromArgb(170,23,18,31)))g.FillRectangle(shade,box);}g.Restore(old);}
-        SessionTheme.DrawScoreBadge(g,x+11,y+6,ObsMode&&ShowBest&&y<150?"best":"recent");g.FillRectangle(accent,x,y,5,height-5);g.DrawString("S",big,Brushes.Gold,x+16,y+22);g.DrawString("Demo artist - Demo map [Insane]",body,Brushes.White,x+66,y+12);g.DrawString("HD  DT   99.25% · 1250x · FC",small,Brushes.Wheat,x+66,y+42);if(height>=110)g.DrawString("300: 1000   100: 12   MISS: 0",small,Brushes.LightGray,x+66,y+68);g.DrawString("250 pp",big,accent,x+width-130,y+28);var forecast=new Rectangle(x+width-138,y+(height>=110?68:57),126,22);using(var path=SessionTheme.Rounded(forecast,7))using(var brush=new SolidBrush(Color.FromArgb(50,255,219,145)))g.FillPath(brush,path);g.DrawString("(if FC 270.00 pp)",small,Brushes.Wheat,forecast.X+7,forecast.Y+4);
+        SessionTheme.DrawScoreBadge(g,x+11,y+6,ObsMode&&ShowBest&&y<150?"best":"recent");g.FillRectangle(accent,x,y,5,height-5);g.DrawString("S",big,Brushes.Gold,x+16,y+22);g.DrawString("Demo artist - Demo map [Insane]",body,Brushes.White,x+66,y+12);g.DrawString("HD  DT   99.25% · 1250x · FC",small,Brushes.Wheat,x+66,y+42);if(height>=110)g.DrawString("300: 1000   100: 12   MISS: 0",small,Brushes.LightGray,x+66,y+68);using(var ppFont=new Font(PreviewFont,height<110?17:21,FontStyle.Bold))g.DrawString("250 pp",ppFont,accent,x+width-138,y+(height<110?14:28));var forecast=new Rectangle(x+width-138,y+(height>=110?68:54),126,22);using(var path=SessionTheme.Rounded(forecast,7))using(var brush=new SolidBrush(Color.FromArgb(50,255,219,145)))g.FillPath(brush,path);g.DrawString("(if FC 270.00 pp)",small,Brushes.Wheat,forecast.X+7,forecast.Y+4);
     }
     protected override void Dispose(bool disposing){if(disposing){timer.Dispose();if(wallpaper!=null)wallpaper.Dispose();if(mascot!=null)mascot.Dispose();}base.Dispose(disposing);}
 }
@@ -456,4 +462,46 @@ public class SessionStats : Control {
             else{g.DrawEllipse(pen,x,y,16,16);g.DrawLine(pen,x+4,y+8,x+12,y+8);g.DrawLine(pen,x+8,y+4,x+8,y+12);}
         }
     }
+}
+
+public class SessionRecap : Control {
+    Image wallpaper;readonly ScoreCards best=new ScoreCards();
+    public string Player="osu! player",DateText="",Gain="—",Duration="00:00:00",Total="0 pp",Client="stable";
+    public int FcCount,PlayCount,Dim=65;public bool English=true,HasBest;
+    public SessionRecap(){SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);Size=new Size(1000,720);BackColor=Color.FromArgb(24,20,32);best.SetBounds(45,493,910,157);best.ApplyCardStyle(SessionTheme.FontName,150,false);Controls.Add(best);}
+    public void SetWallpaper(string path){var old=wallpaper;wallpaper=null;try{if(File.Exists(path))using(var img=Image.FromFile(path))wallpaper=new Bitmap(img);}catch{}if(old!=null)old.Dispose();Invalidate();}
+    public void SetBest(ScoreEntry entry){HasBest=entry!=null;best.Visible=HasBest;if(HasBest)best.ReplaceCards(new ScoreEntry[]{entry});else best.ClearCards();Invalidate();}
+    public Bitmap RenderImage(){var bitmap=new Bitmap(1000,720);DrawToBitmap(bitmap,new Rectangle(0,0,1000,720));return bitmap;}
+    void DrawLabel(Graphics g,string value,float size,Color color,Rectangle area,bool bold){using(var f=new Font(SessionTheme.FontName,size,bold?FontStyle.Bold:FontStyle.Regular))TextRenderer.DrawText(g,value,f,area,color,TextFormatFlags.NoPadding|TextFormatFlags.EndEllipsis|TextFormatFlags.VerticalCenter);}
+    protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Color.FromArgb(24,20,32));
+        if(wallpaper!=null){float ratio=Math.Max(1000f/wallpaper.Width,720f/wallpaper.Height);float sw=1000/ratio,sh=720/ratio;g.DrawImage(wallpaper,new Rectangle(0,0,1000,720),(wallpaper.Width-sw)/2,(wallpaper.Height-sh)/2,sw,sh,GraphicsUnit.Pixel);}
+        using(var dim=new SolidBrush(Color.FromArgb(Math.Max(0,Math.Min(90,Dim))*255/100,13,10,21)))g.FillRectangle(dim,ClientRectangle);
+        using(var shade=new LinearGradientBrush(ClientRectangle,Color.FromArgb(15,20,16,28),Color.FromArgb(235,20,16,28),90))g.FillRectangle(shade,ClientRectangle);
+        DrawLabel(g,"osu! / SESSION TRACKER",12,Color.FromArgb(224,205,235),new Rectangle(45,28,600,30),true);
+        DrawLabel(g,Client=="lazer"?"osu!lazer":"osu!stable",12,Color.FromArgb(224,205,235),new Rectangle(815,28,140,30),true);
+        DrawLabel(g,Player,26,Color.White,new Rectangle(45,100,910,55),true);DrawLabel(g,DateText,12,Color.FromArgb(209,196,221),new Rectangle(45,157,910,30),false);
+        DrawLabel(g,English?"PROFILE PP GAINED":"ПРИРОСТ PP ПРОФИЛЯ",12,Color.FromArgb(216,198,228),new Rectangle(45,219,900,28),true);
+        DrawLabel(g,Gain+" pp",51,SessionTheme.Accent,new Rectangle(42,250,910,95),true);
+        string[] values={"✦ "+FcCount,PlayCount.ToString(),Duration,Total};string[] labels=English?new[]{"FULL COMBOS","MAPS PASSED","SESSION TIME","TOTAL PLAY PP"}:new[]{"ПОЛНЫЕ КОМБО","ПРОЙДЕНО КАРТ","ВРЕМЯ СЕССИИ","СУММА PP КАРТ"};
+        for(int i=0;i<4;i++){int x=45+i*232;using(var path=SessionTheme.Rounded(new Rectangle(x,363,214,89),15))using(var brush=new SolidBrush(Color.FromArgb(210,SessionTheme.PanelColor)))g.FillPath(brush,path);DrawLabel(g,values[i],21,Color.White,new Rectangle(x+13,373,190,38),true);DrawLabel(g,labels[i],9,Color.FromArgb(204,188,218),new Rectangle(x+13,417,190,23),false);}
+        DrawLabel(g,English?"★ BEST PLAY THIS SESSION":"★ ЛУЧШИЙ СКОР СЕССИИ",11,Color.FromArgb(255,214,142),new Rectangle(45,462,900,25),true);
+        if(!HasBest)DrawLabel(g,English?"No scores recorded yet":"В этой сессии пока нет скоров",17,Color.LightGray,new Rectangle(45,525,910,80),false);
+        DrawLabel(g,"osu! session tracker · 2.2",10,Color.FromArgb(178,163,193),new Rectangle(45,674,600,22),false);
+        DrawLabel(g,English?"Calculated play pp ≠ profile pp gain":"Расчётные pp карт ≠ прирост pp профиля",10,Color.FromArgb(178,163,193),new Rectangle(495,674,460,22),false);
+    }
+    protected override void Dispose(bool disposing){if(disposing&&wallpaper!=null)wallpaper.Dispose();base.Dispose(disposing);}
+}
+
+public class HistorySessionList : ListBox {
+    public HistorySessionList(){DrawMode=DrawMode.OwnerDrawFixed;ItemHeight=52;SetStyle(ControlStyles.OptimizedDoubleBuffer,true);}
+    protected override void OnDrawItem(DrawItemEventArgs e){if(e.Index<0)return;var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;using(var b=new SolidBrush(BackColor))g.FillRectangle(b,e.Bounds);bool selected=(e.State&DrawItemState.Selected)!=0;
+        var rect=new Rectangle(e.Bounds.X+3,e.Bounds.Y+3,e.Bounds.Width-7,e.Bounds.Height-6);if(selected)using(var p=SessionTheme.Rounded(rect,9))using(var b=new SolidBrush(Color.FromArgb(70,SessionTheme.Accent)))g.FillPath(b,p);
+        using(var f=new Font("Segoe UI",11,FontStyle.Bold))TextRenderer.DrawText(g,GetItemText(Items[e.Index]),f,new Rectangle(rect.X+12,rect.Y,rect.Width-20,rect.Height),selected?Color.White:Color.FromArgb(206,190,222),TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+    }
+}
+
+public class ArchiveLayoutPreview : Control {
+    public bool Vertical;
+    public ArchiveLayoutPreview(){DoubleBuffered=true;}
+    protected override void OnPaint(PaintEventArgs e){e.Graphics.Clear(Parent.BackColor);e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;for(int i=0;i<3;i++){var box=Vertical?new Rectangle(2,i*13,Width-5,10):new Rectangle(i*(Width/3)+2,3,Width/3-8,32);using(var shape=SessionTheme.Rounded(box,4))using(var brush=new SolidBrush(Color.FromArgb(55,SessionTheme.Accent)))e.Graphics.FillPath(brush,shape);using(var brush=new SolidBrush(SessionTheme.Accent))e.Graphics.FillRectangle(brush,box.X+6,box.Y+3,Math.Max(12,box.Width/3),3);}}
 }

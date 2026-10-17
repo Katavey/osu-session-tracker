@@ -1,7 +1,7 @@
 ﻿param([ValidateSet('stable','lazer')][string]$Client='stable',[Parameter(Mandatory=$true)][string]$TosuExePath)
 $ErrorActionPreference='Stop'
 if(!(Test-Path -LiteralPath $TosuExePath -PathType Leaf)){throw 'Supply the path to official tosu.exe'}
-$root=Join-Path $PSScriptRoot ('dist/osu-session-tracker-v2.1-'+$Client)
+$root=Join-Path $PSScriptRoot ('dist/osu-session-tracker-v2.2-'+$Client)
 [IO.Directory]::CreateDirectory($root) | Out-Null
 $app=Join-Path $root 'app'
 [IO.Directory]::CreateDirectory($app) | Out-Null

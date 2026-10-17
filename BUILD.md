@@ -12,9 +12,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Client stab
 ```
 
 Use `-Client lazer` to build the separate lazer edition with `OsuSessionTrackerLazer.exe`
-in `dist/osu-session-tracker-v2.1-lazer/`. Keep both editions in separate folders.
+in `dist/osu-session-tracker-v2.2-lazer/`. Keep both editions in separate folders.
 
-The complete application is created in `dist/osu-session-tracker-v2.1-stable/`.
+The complete application is created in `dist/osu-session-tracker-v2.2-stable/`.
 The build copies the explicitly supplied tosu executable; it does not download,
 update or verify its origin. Use the official version linked above.
 Personal settings, sessions and imported backgrounds are never copied by the build.
@@ -22,7 +22,7 @@ Personal settings, sessions and imported backgrounds are never copied by the bui
 Optional smoke check:
 
 ```powershell
-.\dist\osu-session-tracker-v2.1-stable\OsuSessionTracker.exe --self-test
+.\dist\osu-session-tracker-v2.2-stable\OsuSessionTracker.exe --self-test
 ```
 
 Check `build-check.txt` in that folder. Do not ship test markers or runtime data.

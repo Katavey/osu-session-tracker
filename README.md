@@ -7,13 +7,13 @@ A hobby project made for fun with friends, with no grand ambitions. More updates
 A Windows desktop session tracker for **osu!stable and osu!lazer** (separate editions), built with AI assistance.
 Track plays, FCs and pp, browse session history, and show score cards in OBS.
 
-**Version: 2.1** · [Русский README](README.ru.md) · [Changelog](CHANGELOG.md)
+**Version: 2.2** · [Русский README](README.ru.md) · [Changelog](CHANGELOG.md)
 
 ## Download and run
 
 Open this repository's **Releases** and download
-`osu-session-tracker-v2.1-stable-Windows.zip` or
-`osu-session-tracker-v2.1-lazer-Windows.zip`. Extract the entire folder and run
+`osu-session-tracker-v2.2-stable-Windows.zip` or
+`osu-session-tracker-v2.2-lazer-Windows.zip`. Extract the entire folder and run
 `OsuSessionTracker.exe` (stable) or `OsuSessionTrackerLazer.exe` (lazer). Keep editions in separate folders. Keep `app` and `tosu` beside the executable.
 The GitHub-generated “Source code” archives contain source files, not a ready-to-run build.
 
@@ -28,14 +28,24 @@ osu! can already be open. With both games open, tosu follows the active client. 
 - Calculated pp can include loved/unranked maps; it does not mean the same pp was added to your profile.
 - Score cards with map backgrounds, rank, official mod icons, accuracy, combo and hit judgments.
 - Click a score to open its score page when its ID is available, otherwise its beatmap page.
-- Larger session history with day/month filters, horizontal score browsing, a clickable best card and CSV export; recording continues while browsing older sessions.
-- Russian/English UI, installed font selection, three themes, three wallpapers and custom images.
+- Larger session history with day/month filters, horizontal/vertical score browsing, a clickable best card and CSV export; recording continues while browsing older sessions.
+- Russian/English UI, installed font selection, six themes, three wallpapers and custom images.
 - Background dimming, compact cards, optional score animations, anime mascot and Japanese voice greeting.
 - Celebration for a play confirmed to be in the profile's top five.
 - Local OBS overlay with 0–5 recent cards, optional best/statistics, its own font, card sizes, width, background opacity and animations.
 - Live appearance previews and an isolated browser demo preview for OBS.
 - BEST/RECENT badges, five statistics tiles with an FC medal, and highlighted (if FC … pp) forecasts.
 - Rounded settings groups, switches, selectors and number steppers.
+
+## New in 2.2
+
+- Export a session recap PNG with a customizable background and best-play card.
+- Archive direction and minimum scores (default 3), and optional ranked-only session best: **Settings → Sessions**.
+- Empty sessions are not written; short history is hidden without deleting it.
+- OBS speed 25–300%, four new animations, independent themes and all installed fonts.
+- 70 official mod badges, including the full lazer set. Compact-card and settings-header fixes included.
+
+See [release notes](RELEASE-NOTES.md) for details and older-score status limitations.
 
 ## OBS setup
 
@@ -52,10 +62,10 @@ Old custom CSS overrides may prevent new appearance settings from taking effect.
 
 ## Updating and personal data
 
-For stable 2.0.1, close the app, back up its folder and extract the complete
-`osu-session-tracker-v2.1-stable-UPDATE.zip` over it, replacing files. Do not apply
-this update to lazer. Full archives can also be copied over the matching edition.
-Settings and history are not included in release archives.
+For an existing 2.1/2.2 installation, close the tracker, back up its folder and
+extract all contents of the matching stable-UPDATE or lazer-UPDATE ZIP over it.
+Do not mix editions. Full archives can also be merged over the matching edition.
+Settings, history and imported wallpapers are excluded from release archives.
 
 - `app/settings.json`: preferences
 - `app/sessions/`: session history

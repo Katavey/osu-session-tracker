@@ -7,13 +7,13 @@ A hobby project made for fun with friends, with no grand ambitions. More updates
 A Windows desktop session tracker for **osu!stable and osu!lazer** (separate editions), built with AI assistance.
 Track plays, FCs and pp, browse session history, and show score cards in OBS.
 
-**Version: 2.2** · [Русский README](README.ru.md) · [Changelog](CHANGELOG.md)
+**Version: 2.2.1** · [Русский README](README.ru.md) · [Changelog](CHANGELOG.md)
 
 ## Download and run
 
 Open this repository's **Releases** and download
-`osu-session-tracker-v2.2-stable-Windows.zip` or
-`osu-session-tracker-v2.2-lazer-Windows.zip`. Extract the entire folder and run
+`osu-session-tracker-v2.2.1-stable-Windows.zip` or
+`osu-session-tracker-v2.2.1-lazer-Windows.zip`. Extract the entire folder and run
 `OsuSessionTracker.exe` (stable) or `OsuSessionTrackerLazer.exe` (lazer). Keep editions in separate folders. Keep `app` and `tosu` beside the executable.
 The GitHub-generated “Source code” archives contain source files, not a ready-to-run build.
 
@@ -21,6 +21,10 @@ Windows 10/11 x64 with Windows PowerShell 5.1 and .NET Framework 4.x is required
 The launcher starts bundled tosu and closes its associated tosu process when the tracker exits.
 Choose your language and font on first launch. Start a session before playing;
 osu! can already be open. With both games open, tosu follows the active client. Simultaneous independent tracking of both games is not claimed.
+
+## New in 2.2.1
+
+Multiplayer score tracking, improved stable completion detection, a TikTok URL button and centered browser overlays. See [release notes](RELEASE-NOTES.md).
 
 ## Features
 

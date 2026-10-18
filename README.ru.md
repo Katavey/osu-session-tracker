@@ -4,7 +4,7 @@
 
 Это проект ради прикола для друзей, без больших претензий. Скорее всего, будут обновления.
 
-**Версия 2.2** · [English](README.md) · [Все изменения и установка](RELEASE-NOTES.md)
+**Версия 2.2.1** · [English](README.md) · [Все изменения и установка](RELEASE-NOTES.md)
 
 Трекер сессий для Windows с двумя отдельными сборками: **osu!stable** и **osu!lazer**.
 
@@ -12,8 +12,8 @@
 
 В [Releases](https://github.com/Katavey/osu-session-tracker/releases/latest) скачай:
 
-- `osu-session-tracker-v2.2-stable-Windows.zip` → `OsuSessionTracker.exe`.
-- `osu-session-tracker-v2.2-lazer-Windows.zip` → `OsuSessionTrackerLazer.exe`.
+- `osu-session-tracker-v2.2.1-stable-Windows.zip` → `OsuSessionTracker.exe`.
+- `osu-session-tracker-v2.2.1-lazer-Windows.zip` → `OsuSessionTrackerLazer.exe`.
 
 Распакуй архив целиком; папки app и tosu должны оставаться рядом с EXE. Держи версии в разных папках. Автоматический Source code — исходники, а не готовая программа. Требуются Windows 10/11 x64, Windows PowerShell 5.1 и .NET Framework 4.x.
 
@@ -61,3 +61,7 @@ PNG итогов с фоном и лучшим скором; понятнее а
 [Сборка](BUILD.md) · [Статус лицензии](LICENSE-STATUS.md). Лицензия для оригинального кода пока не выбрана. tosu — LGPL-3.0, иконки модов osu-web — AGPL-3.0, Font Awesome Free — CC BY 4.0; уведомления и исходные SVG сохранены. Изображения и маскот сгенерированы ИИ, голос синтетический. Проект не связан с osu!/ppy.
 
 Об ошибках сообщай через Issues: версия, Windows, stable/lazer, шаги и результат. Не прикладывай личные настройки и полную историю.
+
+## Новое в 2.2.1
+
+Скоры мульти, доработка завершения карты в stable, кнопка ссылки TikTok и центрирование виджета. Подробнее: [изменения](RELEASE-NOTES.md).

@@ -219,7 +219,7 @@ function Show-AppearanceSettings {
     $includeUnranked.Add_CheckedChanged($updateBestRule);& $updateBestRule
     [void](Dialog-Label $sessionOptions (T 'Правило применяется к программе, архиву, PNG и OBS. Изменения — после «Применить».' 'Applies to the app, archive, PNG and OBS. Changes take effect after Apply.') 600 195 565 120 12)
     $appPreview=New-Object SettingsPreview;$appPreview.SetBounds(600,50,565,560);$appPreview.Anchor='Top,Left';$appPreview.SetMascot((Join-Path $script:appRoot 'assets/mascot.png'));$appearance.Controls.Add($appPreview)
-    $obsCheck=Settings-Check $obs (T 'Включить оверлей OBS' 'Enable OBS overlay') 15 $script:overlayEnabled
+    $obsCheck=Settings-Check $obs (T 'Включить оверлей OBS / TikTok' 'Enable OBS / TikTok overlay') 15 $script:overlayEnabled
     $statsCheck=Settings-Check $obs (T 'Показывать счётчики сессии' 'Show session statistics') 50 $script:overlayShowStats
     $bestCheck=Settings-Check $obs (T 'Показывать лучший скор сессии' 'Show session best score') 85 $script:overlayBestEnabled
     $recentCount=Settings-Number $obs (T 'Последние скоры · 0 = скрыть' 'Recent scores · 0 = hide') 125 0 5 $script:overlayRecentCount
@@ -284,8 +284,9 @@ function Show-AppearanceSettings {
         Save-Settings
         $saveInfo.Text=T 'Сохранено. Настройки OBS применены.' 'Saved. OBS settings applied.'
     }
-    [void](Dialog-Button $dialog (T 'Скопировать URL OBS' 'Copy OBS URL') 20 805 270 {if($script:overlayServer){[Windows.Forms.Clipboard]::SetText($script:overlayServer.Url);$saveInfo.Text=$script:overlayServer.Url}else{$saveInfo.Text=T 'Сначала включи OBS и нажми «Применить».' 'Enable OBS and click Apply first.'}})
-    $saveInfo=Dialog-Label $dialog '' 315 795 540 70 10
+    [void](Dialog-Button $dialog (T 'Скопировать URL OBS' 'Copy OBS URL') 20 805 210 {if($script:overlayServer){[Windows.Forms.Clipboard]::SetText($script:overlayServer.Url);$saveInfo.Text=$script:overlayServer.Url}else{$saveInfo.Text=T 'Сначала включи OBS и нажми «Применить».' 'Enable OBS and click Apply first.'}})
+    [void](Dialog-Button $dialog (T 'Ссылка TikTok' 'Copy TikTok URL') 245 805 210 {if($script:overlayServer){[Windows.Forms.Clipboard]::SetText($script:overlayServer.TikTokUrl);$saveInfo.Text=$script:overlayServer.TikTokUrl}else{$saveInfo.Text=T 'Включи оверлей и нажми «Применить».' 'Enable the overlay and click Apply first.'}})
+    $saveInfo=Dialog-Label $dialog '' 475 795 375 70 10
     $applyButton=Dialog-Button $dialog (T 'Применить' 'Apply') 875 805 160 $apply;$applyButton.Primary=$true
     [void](Dialog-Button $dialog (T 'Закрыть' 'Close') 1055 805 165 {$dialog.Close()})
     [void](Dialog-Label $dialog (T 'Настрой под себя' 'Make it yours') 25 15 630 35 21)

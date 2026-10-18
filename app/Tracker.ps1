@@ -2,7 +2,7 @@
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'Theme.cs') -ReferencedAssemblies System.Windows.Forms,System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'Feed.cs') -ReferencedAssemblies System,System.Core
-Add-Type -Path (Join-Path $PSScriptRoot 'Overlay.cs') -ReferencedAssemblies System,System.Core
+Add-Type -Path (Join-Path $PSScriptRoot 'Overlay.cs') -ReferencedAssemblies System,System.Core,System.Web.Extensions
 $script:targetClient='stable'
 $clientFile=Join-Path $PSScriptRoot 'client.txt'
 if([IO.File]::Exists($clientFile) -and [IO.File]::ReadAllText($clientFile).Trim() -eq 'lazer'){$script:targetClient='lazer'}
@@ -38,6 +38,7 @@ function New-Session {
     Save-Session
     $script:session = [pscustomobject]@{id=[guid]::NewGuid().ToString(); started=(Get-Date).ToString('o'); ended=$null; client=$script:targetClient; player=$null; mode=$null; baseline=$null; latest=$null; plays=@()}
     $script:armed=$false
+    $script:multiContext=$false;$script:multiPlay=$false;$script:playFinished=$false
     Save-Session
     Refresh-View
 }
@@ -45,6 +46,7 @@ function End-Session {
     if(!$script:session -or $script:session.ended){return}
     $script:session.ended=(Get-Date).ToString('o')
     $script:armed=$false
+    $script:multiContext=$false;$script:multiPlay=$false;$script:playFinished=$false
     Save-Session
     Refresh-View
 }
@@ -105,6 +107,29 @@ function Get-ScoreUrl($p) {
     if($p.beatmapId -gt 0){return "https://osu.ppy.sh/b/$($p.beatmapId)"}
     return $null
 }
+function Get-PlayHitCount($play) {
+    $total=0L
+    $keys=if([int]$play.mode.number -eq 3){@('300','geki','100','katu','50','0')}else{@('300','100','50','0')}
+    foreach($key in $keys){$total += [long]$play.hits.$key}
+    return $total
+}
+function Test-PlayComplete($play,$map) {
+    # The last gameplay packet may precede the end timestamp by one poll.
+    # Count judged objects as well; do not infer completion from a near-end timer.
+    if($map.time.lastObject -gt 0 -and $map.time.live -ge $map.time.lastObject){return $true}
+    if([int]$play.mode.number -in @(0,3) -and $map.stats.objects.total -gt 0){
+        return ((Get-PlayHitCount $play) -ge [long]$map.stats.objects.total)
+    }
+    return $false
+}
+function Write-MultiDiagnostic($event,$d) {
+    try {
+        $path=Join-Path $PSScriptRoot 'multiplayer-diagnostic.log'
+        if([IO.File]::Exists($path) -and (Get-Item -LiteralPath $path).Length -gt 262144){[IO.File]::WriteAllText($path,'')}
+        $row=[ordered]@{time=(Get-Date).ToString('o');event=$event;client=$d.client;state=$d.state.number;stateName=$d.state.name;armed=$script:armed;multi=$script:multiPlay;complete=$script:playFinished;map=$d.beatmap.id;live=$d.beatmap.time.live;end=$d.beatmap.time.lastObject;objects=$d.beatmap.stats.objects.total;score=$d.play.score;hits=(Get-PlayHitCount $d.play);savedScore=$script:play.score;savedHits=(Get-PlayHitCount $script:play);failed=$d.play.failed;ownPlayer=($d.play.playerName -eq $d.profile.name);resultScore=$d.resultsScreen.score;recorded=@($script:session.plays).Count}
+        [IO.File]::AppendAllText($path,($row|ConvertTo-Json -Compress)+[Environment]::NewLine)
+    } catch {}
+}
 function Process-Packet($d) {
     $incoming=if($d.client){[string]$d.client}else{'stable'}
     $script:clientMatches=($incoming -eq $script:targetClient)
@@ -121,14 +146,53 @@ function Process-Packet($d) {
         if($s.latest -ne $profile.pp) { $s.latest=[double]$profile.pp; Save-Session }
     }
     $state=[int]$d.state.number
+    if($script:diagnosticState -ne $state){Write-MultiDiagnostic 'transition' $d;$script:diagnosticState=$state}
+    # tosu does not populate resultsScreen on multiplayer ranking screens.
+    if($state -in @(11,12,13,15) -and !$script:armed){$script:multiContext=$true}
+    if($state -eq 2 -and !$script:armed){$script:multiPlay=[bool]$script:multiContext}
+    # Stable can keep updating gameplay after the screen changes to the lobby.
+    # Prefer that final snapshot only when it belongs to the same player/map.
+    if($script:armed -and $state -ne 2 -and $d.beatmap.id -eq $script:map.id -and $d.play.playerName -and $d.play.playerName -eq $script:play.playerName -and $d.play.score -ge $script:play.score -and (Get-PlayHitCount $d.play) -ge (Get-PlayHitCount $script:play)){
+        $final=$d.play.PSObject.Copy()
+        $final.mods=$script:play.mods
+        $final.failed=([bool]$final.failed -or [bool]$script:play.failed)
+        $script:play=$final
+        if([int]$final.mode.number -in @(0,3) -and $d.beatmap.stats.objects.total -gt 0 -and (Get-PlayHitCount $final) -ge [long]$d.beatmap.stats.objects.total){$script:playFinished=$true}
+    }
+    $multiResult=($state -in @(14,17,18))
+    $emptyMultiResults=($state -eq 7 -and $script:multiPlay -and $script:playFinished -and $d.resultsScreen.score -le 0)
+    $multiReturn=($script:multiPlay -and $state -in @(11,12,13,15) -and $script:playFinished)
+    if($script:armed -and ($multiResult -or $multiReturn -or $emptyMultiResults)){
+        $gp=$script:play
+        $ownName=[string]$profile.name
+        if(!$ownName){$ownName=[string]$s.playerName}
+        if($gp.score -gt 0 -and !$gp.failed -and $gp.playerName -and $ownName -and $gp.playerName -eq $ownName){
+            $copy=[ordered]@{}
+            foreach($prop in $d.PSObject.Properties){$copy[$prop.Name]=$prop.Value}
+            $copy['state']=[pscustomobject]@{number=7}
+            $copy['beatmap']=$script:map
+            $copy['resultsScreen']=[pscustomobject]@{
+                scoreId=0;score=$gp.score;rank=$gp.rank.current;maxCombo=$gp.combo.max
+                hits=$gp.hits;mods=$gp.mods;pp=$gp.pp;accuracy=$gp.accuracy;mode=$gp.mode
+                playerName=$gp.playerName
+            }
+            Process-Packet ([pscustomobject]$copy)
+            if(!$script:armed){$s.plays[-1]|Add-Member -NotePropertyName multiplayer -NotePropertyValue $true -Force;Save-Session}
+        }else{$script:armed=$false}
+        Write-MultiDiagnostic 'multiplayer-result' $d
+        return
+    }
+    if($state -notin @(2,7,11,12,13,14,15,17,18)){$script:multiContext=$false}
     if($state -eq 2) {
         $script:armed=$true; $script:resultSince=$null
         $script:map=$d.beatmap
         $script:play=$d.play
+        $script:playFinished=Test-PlayComplete $d.play $d.beatmap
         $bgKey="$($d.beatmap.checksum)|$($d.beatmap.id)|$($d.directPath.beatmapFile)|$($d.files.background)"
         if($script:bgKey -ne $bgKey){$script:bgKey=$bgKey;$script:background=Resolve-Background $d}
     } elseif($state -eq 7 -and $script:armed) {
         $r=$d.resultsScreen
+        if($r.playerName -and $profile.name -and $r.playerName -ne $profile.name){return}
         if($r.score -le 0 -or $r.rank -eq 'F') {return}
         $script:armed=$false
         $m=$script:map
@@ -201,7 +265,7 @@ $form=New-Object SessionForm
 if(!$script:languageChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-Language)){$script:topHttp.Dispose();$form.Dispose();return}
 if(!$script:fontChosen -and $env:OSU_TRACKER_UI_TEST -ne '1' -and !(Select-FirstFont)){$script:topHttp.Dispose();$form.Dispose();return}
 [SessionTheme]::RoundWindow($form)
-$form.Text="osu! $script:targetClient session tracker 2.2 (test)"; $form.Size=New-Object Drawing.Size(1140,920)
+$form.Text="osu! $script:targetClient session tracker 2.2.1 (test)"; $form.Size=New-Object Drawing.Size(1140,920)
 $form.MinimumSize=New-Object Drawing.Size(1020,860)
 $form.StartPosition='CenterScreen'
 $form.BackColor=[Drawing.Color]::FromArgb(23,20,29); $form.ForeColor=[Drawing.Color]::FromArgb(242,234,246)
@@ -215,7 +279,7 @@ $form.Font=New-Object Drawing.Font($script:uiFont,10)
 function Label($text,$x,$y,$w,$h,$size=11) {
     $l=New-Object SessionLabel; $l.Text=$text; $l.Location=New-Object Drawing.Point($x,$y); $l.Size=New-Object Drawing.Size($w,$h); $l.Font=New-Object Drawing.Font($script:uiFont,$size); $form.Controls.Add($l); return $l
 }
-$title=Label "osu! $script:targetClient / tracker 2.2" 30 20 700 45 25
+$title=Label "osu! $script:targetClient / tracker 2.2.1" 30 20 700 45 25
 $title.ForeColor=[Drawing.Color]::FromArgb(255,155,200)
 $sessionLabel=Label '' 33 76 700 24 10
 $sessionLabel.ForeColor=[Drawing.Color]::FromArgb(180,163,193)
@@ -323,7 +387,7 @@ $timer.Add_Tick({
 $form.Add_FormClosing({$timer.Stop(); if($script:session -and !$script:session.ended){End-Session}; Disconnect; [MascotAudio]::Stop(); $script:topHttp.Dispose(); if($script:overlayServer){$script:overlayServer.Dispose()}; if($mascot.Image){$mascot.Image.Dispose()}})
 function Apply-Language {
     [ScoreCards]::English=($script:language -eq 'en')
-    $title.Text="osu! $script:targetClient / tracker 2.2"
+    $title.Text="osu! $script:targetClient / tracker 2.2.1"
     $newButton.Text=T 'Новая сессия' 'New session'
     $endButton.Text=T 'Завершить сессию' 'Finish session'
     $historyButton.Text=T 'История сессий' 'Session history'

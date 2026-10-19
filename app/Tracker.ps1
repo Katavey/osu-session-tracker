@@ -130,6 +130,14 @@ function Write-MultiDiagnostic($event,$d) {
         [IO.File]::AppendAllText($path,($row|ConvertTo-Json -Compress)+[Environment]::NewLine)
     } catch {}
 }
+function Get-ResultIdentity($r) {
+    return "$($r.score)|$($r.maxCombo)|$($r.accuracy)|$($r.hits.'300')|$($r.hits.'100')|$($r.hits.'50')|$($r.hits.'0')|$($r.scoreId)|$($r.createdAt)"
+}
+function Test-ResultMatchesPlay($r,$gp) {
+    if($gp.score -le 0 -or $r.score -ne $gp.score -or $r.maxCombo -ne $gp.combo.max){return $false}
+    foreach($key in @('300','geki','100','katu','50','0')){if([long]$r.hits.$key -ne [long]$gp.hits.$key){return $false}}
+    return $true
+}
 function Process-Packet($d) {
     $incoming=if($d.client){[string]$d.client}else{'stable'}
     $script:clientMatches=($incoming -eq $script:targetClient)
@@ -149,7 +157,10 @@ function Process-Packet($d) {
     if($script:diagnosticState -ne $state){Write-MultiDiagnostic 'transition' $d;$script:diagnosticState=$state}
     # tosu does not populate resultsScreen on multiplayer ranking screens.
     if($state -in @(11,12,13,15) -and !$script:armed){$script:multiContext=$true}
-    if($state -eq 2 -and !$script:armed){$script:multiPlay=[bool]$script:multiContext}
+    if($state -eq 2 -and !$script:armed){
+        $script:multiPlay=[bool]$script:multiContext
+        $script:previousResultIdentity=Get-ResultIdentity $d.resultsScreen
+    }
     # Stable can keep updating gameplay after the screen changes to the lobby.
     # Prefer that final snapshot only when it belongs to the same player/map.
     if($script:armed -and $state -ne 2 -and $d.beatmap.id -eq $script:map.id -and $d.play.playerName -and $d.play.playerName -eq $script:play.playerName -and $d.play.score -ge $script:play.score -and (Get-PlayHitCount $d.play) -ge (Get-PlayHitCount $script:play)){
@@ -194,6 +205,14 @@ function Process-Packet($d) {
         $r=$d.resultsScreen
         if($r.playerName -and $profile.name -and $r.playerName -ne $profile.name){return}
         if($r.score -le 0 -or $r.rank -eq 'F') {return}
+        $matchesPlay=Test-ResultMatchesPlay $r $script:play
+        # A state change can arrive before tosu refreshes the results data.
+        if($script:play.score -gt 0 -and !$matchesPlay -and $script:previousResultIdentity -eq (Get-ResultIdentity $r)){return}
+        $useGameplayPp=($matchesPlay -and $null -ne $script:play.pp.current)
+        if($useGameplayPp){
+            # tosu can cache results PP by map/mods/player across repeat plays.
+            $r=$r.PSObject.Copy();$r.pp=$script:play.pp
+        }
         $script:armed=$false
         $m=$script:map
         if($d.beatmap.id -eq $m.id -and $d.beatmap.stats.maxCombo -gt 0){$m=$d.beatmap}
@@ -202,6 +221,7 @@ function Process-Packet($d) {
         $p=[pscustomobject]@{time=(Get-Date).ToString('o'); map="$($m.artist) - $($m.title) [$($m.version)]"; beatmapId=$m.id; mods=$(if($r.mods.name){$r.mods.name}else{'NM'}); pp=[math]::Round([double]$r.pp.current,2); accuracy=[math]::Round([double]$r.accuracy,2); combo=$r.maxCombo; misses=$r.hits.'0'; fc=$fc; rank=$r.rank}
         $mapStatus=Get-BeatmapStatus $m;if($mapStatus -eq 'unknown'){$mapStatus=Get-BeatmapStatus $script:map}
         $p | Add-Member -NotePropertyMembers @{mapStatus=$mapStatus;modRate=[double]$r.mods.rate;modData=@($r.mods.array);stars=[double]$m.stats.stars.total;fcPp=[double]$r.pp.fc;background=$script:background;hitText="300: $($r.hits.'300')   100: $($r.hits.'100')   50: $($r.hits.'50')   MISS: $($r.hits.'0')";scoreId=[long]$r.scoreId;score=[long]$r.score;mode=[int]$r.mode.number;client=$script:targetClient;server=[string]$d.server}
+        $p|Add-Member -NotePropertyName gameplayPp -NotePropertyValue $useGameplayPp
         $s.plays=@($s.plays)+$p
         Queue-TopCheck $p $s.player
         Save-Session; Refresh-View
@@ -213,7 +233,7 @@ function Process-Packet($d) {
             $lateStatus=Get-BeatmapStatus $d.beatmap
             if($lateStatus -ne 'unknown' -and $last.mapStatus -ne $lateStatus){$last|Add-Member -NotePropertyName mapStatus -NotePropertyValue $lateStatus -Force;$changed=$true}
             if($last.scoreId -le 0 -and $r.scoreId -gt 0){$last.scoreId=[long]$r.scoreId;$changed=$true}
-            if($null -ne $r.pp.current -and $last.pp -ne [math]::Round([double]$r.pp.current,2)){$last.pp=[math]::Round([double]$r.pp.current,2);$last.fcPp=[double]$r.pp.fc;$changed=$true}
+            if(!$last.gameplayPp -and $null -ne $r.pp.current -and $last.pp -ne [math]::Round([double]$r.pp.current,2)){$last.pp=[math]::Round([double]$r.pp.current,2);$last.fcPp=[double]$r.pp.fc;$changed=$true}
             if($changed){$script:cardsKey=$null;Save-Session;Refresh-View}
         }
     } elseif($state -ne 7) { $script:armed=$false; $script:resultSince=$null }
